@@ -8,26 +8,54 @@
   </head>
   <body>
     <main class="container">
-      <section class="hero card">
-        <h1>BotHost</h1>
-        <p>Heberge tes bots Discord avec un compte utilisateur et un espace admin.</p>
+      <section class="landing-nav">
+        <h1 class="brand">BotHost</h1>
         <div class="actions">
           <% if (!currentUser) { %>
-          <a class="btn-link" href="/register">Creer un compte</a>
-          <a class="btn-link secondary" href="/login">Se connecter</a>
+          <a href="/login">Connexion</a>
+          <a class="btn-link" href="/register">Inscription</a>
           <% } else { %>
-          <a class="btn-link" href="/dashboard">Acceder au dashboard</a>
+          <a class="btn-link" href="/dashboard">Dashboard</a>
           <% } %>
         </div>
       </section>
 
-      <section class="card">
-        <h2>Fonctionnalites</h2>
-        <ul>
-          <li>Connexion securisee email + mot de passe</li>
-          <li>Role admin pour gerer les utilisateurs</li>
-          <li>Dashboard pour enregistrer et suivre les bots</li>
-        </ul>
+      <section class="hero card">
+        <p class="kicker">Hebergement Discord</p>
+        <h2>Lance et gere tes bots depuis une seule plateforme</h2>
+        <p class="hero-text">
+          Un vrai site web avec compte utilisateur, administration, et tableau de bord pour centraliser la
+          gestion de tes bots.
+        </p>
+        <div class="actions hero-actions">
+          <% if (!currentUser) { %>
+          <a class="btn-link" href="/register">Demarrer gratuitement</a>
+          <a class="btn-link secondary" href="/login">J'ai deja un compte</a>
+          <% } else { %>
+          <a class="btn-link" href="/dashboard">Acceder a mon espace</a>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="features">
+        <article class="card">
+          <h3>Authentification securisee</h3>
+          <p>Connexion par email et mot de passe pour chaque membre.</p>
+        </article>
+        <article class="card">
+          <h3>Espace admin</h3>
+          <p>Cree des comptes utilisateurs et gere les roles simplement.</p>
+        </article>
+        <article class="card">
+          <h3>Dashboard bots</h3>
+          <p>Ajoute, consulte et organise les bots heberges.</p>
+        </article>
+      </section>
+
+      <section class="card pricing">
+        <h3>Tarif de depart</h3>
+        <p class="price">0 EUR / mois</p>
+        <p>Parfait pour lancer ton projet et evoluer ensuite vers une infra plus puissante.</p>
       </section>
     </main>
   </body>
