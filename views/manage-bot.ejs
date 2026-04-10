@@ -53,6 +53,16 @@
           <input name="response" type="text" placeholder="Reponse commande" required />
           <button type="submit">Ajouter commande</button>
         </form>
+        <form
+          method="post"
+          action="/bots/<%= bot.id %>/commands/import"
+          enctype="multipart/form-data"
+          class="form-grid"
+        >
+          <input name="commands_file" type="file" accept=".json,.txt,.csv" required />
+          <button type="submit">Importer un fichier de commandes</button>
+        </form>
+        <p class="small-note">Format: JSON ({ "!ping": "pong" } ou tableau) ou texte ligne par ligne: !ping|pong.</p>
       </section>
 
       <section class="card form-grid">

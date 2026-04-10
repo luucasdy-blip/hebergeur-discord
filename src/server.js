@@ -19,6 +19,7 @@ const {
   setBotTokenForUser,
   setBotOnlineForUser,
   addBotCommandForUser,
+  addBotCommandsBulkForUser,
   addBotFileForUser,
 } = require("./db");
 const { startBot, stopBot } = require("./bot-runner");
@@ -35,6 +36,29 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 const uploadsDir = path.join(__dirname, "..", "public", "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const upload = multer({ dest: uploadsDir });
+
+function parseCommandsFromFileContent(content) {
+  const trimmed = String(content || "").trim();
+  if (!trimmed) return [];
+
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    const json = JSON.parse(trimmed);
+    if (Array.isArray(json)) {
+      return json.map((item) => ({ name: item.name, response: item.response }));
+    }
+    return Object.entries(json).map(([name, response]) => ({ name, response }));
+  }
+
+  return trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const sep = line.includes("|") ? "|" : ";";
+      const parts = line.split(sep);
+      return { name: parts[0], response: parts.slice(1).join(sep) };
+    });
+}
 
 app.use(
   session({
@@ -270,6 +294,33 @@ app.post("/bots/:id/commands/create", requireAuth, async (req, res) => {
   }
   const result = await addBotCommandForUser(res.locals.currentUser, req.params.id, name, response);
   req.session.message = result.ok ? "Commande ajoutee." : "Impossible d'ajouter la commande.";
+  return res.redirect(`/bots/${req.params.id}/manage`);
+});
+
+app.post("/bots/:id/commands/import", requireAuth, upload.single("commands_file"), async (req, res) => {
+  if (!req.file) {
+    req.session.message = "Aucun fichier de commandes recu.";
+    return res.redirect(`/bots/${req.params.id}/manage`);
+  }
+
+  try {
+    const content = fs.readFileSync(req.file.path, "utf8");
+    const commands = parseCommandsFromFileContent(content);
+    const result = await addBotCommandsBulkForUser(res.locals.currentUser, req.params.id, commands);
+    req.session.message =
+      result.ok && result.count > 0
+        ? `${result.count} commandes importees.`
+        : "Aucune commande valide trouvee dans le fichier.";
+  } catch (error) {
+    req.session.message = "Erreur d'import. Formats acceptes: JSON ou lignes name|response.";
+  } finally {
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (error) {
+      // Ignore file cleanup errors.
+    }
+  }
+
   return res.redirect(`/bots/${req.params.id}/manage`);
 });
 

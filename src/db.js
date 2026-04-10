@@ -246,6 +246,30 @@ async function addBotCommandForUser(user, botId, name, response) {
   return { ok: true, command };
 }
 
+async function addBotCommandsBulkForUser(user, botId, commands) {
+  const bot = await getBotById(botId);
+  if (!bot || !canManageBot(user, bot)) return { ok: false };
+  bot.commands = bot.commands || [];
+
+  const sanitized = (commands || [])
+    .map((c) => ({
+      name: String(c.name || "").trim(),
+      response: String(c.response || "").trim(),
+    }))
+    .filter((c) => c.name && c.response);
+
+  const toInsert = sanitized.map((c) => ({
+    id: `${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+    name: c.name,
+    response: c.response,
+    created_at: nowIso(),
+  }));
+
+  bot.commands.push(...toInsert);
+  saveDb(state);
+  return { ok: true, count: toInsert.length };
+}
+
 async function addBotFileForUser(user, botId, fileInfo) {
   const bot = await getBotById(botId);
   if (!bot || !canManageBot(user, bot)) return { ok: false };
@@ -361,5 +385,6 @@ module.exports = {
   setBotOnlineForUser,
   setBotRuntimeStatus,
   addBotCommandForUser,
+  addBotCommandsBulkForUser,
   addBotFileForUser,
 };

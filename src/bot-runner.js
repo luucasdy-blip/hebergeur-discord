@@ -30,6 +30,7 @@ async function startBot(bot) {
     return { ok: false, reason: "missing_token" };
   }
   if (runningBots.has(bot.id)) {
+    await setBotRuntimeStatus(bot.id, "online");
     return { ok: true, alreadyRunning: true };
   }
 
