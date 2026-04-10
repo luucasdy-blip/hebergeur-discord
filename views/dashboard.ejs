@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Hebergeur Bot</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <strong><%= currentUser.email %></strong>
+        <span class="badge"><%= currentUser.role %></span>
+      </div>
+      <div class="actions">
+        <% if (currentUser.role === 'admin') { %>
+        <a href="/admin/users">Gestion utilisateurs</a>
+        <% } %>
+        <form method="post" action="/logout">
+          <button type="submit">Se deconnecter</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Mes bots</h1>
+      <p>Ici tu peux enregistrer les bots a heberger.</p>
+
+      <% if (message) { %>
+      <p class="message"><%= message %></p>
+      <% } %>
+
+      <form method="post" action="/bots/create" class="card inline-form">
+        <input name="name" type="text" placeholder="Nom du bot" required />
+        <button type="submit">Ajouter</button>
+      </form>
+
+      <section class="card">
+        <% if (!bots.length) { %>
+        <p>Aucun bot pour le moment.</p>
+        <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Statut</th>
+              <th>Proprietaire</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bots.forEach((bot) => { %>
+            <tr>
+              <td><%= bot.name %></td>
+              <td><%= bot.status %></td>
+              <td><%= bot.owner_email %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </section>
+    </main>
+  </body>
+</html>

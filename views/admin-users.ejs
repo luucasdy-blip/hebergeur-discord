@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - Utilisateurs</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <strong><%= currentUser.email %></strong>
+        <span class="badge">admin</span>
+      </div>
+      <div class="actions">
+        <a href="/dashboard">Dashboard</a>
+        <form method="post" action="/logout">
+          <button type="submit">Se deconnecter</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Gestion des utilisateurs</h1>
+
+      <% if (message) { %>
+      <p class="message"><%= message %></p>
+      <% } %>
+
+      <form method="post" action="/admin/users/create" class="card form-grid">
+        <h2>Creer un compte</h2>
+        <input name="email" type="email" placeholder="Email" required />
+        <input name="password" type="password" placeholder="Mot de passe" required />
+        <select name="role">
+          <option value="user">Utilisateur</option>
+          <option value="admin">Admin</option>
+        </select>
+        <button type="submit">Creer</button>
+      </form>
+
+      <section class="card">
+        <h2>Liste des comptes</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Cree le</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% users.forEach((user) => { %>
+            <tr>
+              <td><%= user.email %></td>
+              <td><%= user.role %></td>
+              <td><%= user.created_at %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </body>
+</html>

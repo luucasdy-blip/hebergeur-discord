@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inscription - BotHost</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="auth-container">
+      <h1>Creer un compte</h1>
+      <p>Inscription utilisateur avec email et mot de passe.</p>
+
+      <% if (message) { %>
+      <p class="message"><%= message %></p>
+      <% } %>
+
+      <form method="post" action="/register" class="card">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+
+        <label for="password">Mot de passe (8 caracteres min)</label>
+        <input id="password" name="password" type="password" required minlength="8" />
+
+        <button type="submit">Creer mon compte</button>
+      </form>
+
+      <p>Deja inscrit ? <a href="/login">Se connecter</a></p>
+    </main>
+  </body>
+</html>
