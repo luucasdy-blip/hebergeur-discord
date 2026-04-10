@@ -22,7 +22,7 @@
 
     <main class="container">
       <h1>Panel: <%= bot.name %></h1>
-      <p>Etat: <strong><%= bot.is_online ? "En ligne" : "Hors ligne" %></strong></p>
+      <p>Etat: <strong><%= bot.status || (bot.is_online ? "online" : "offline") %></strong></p>
 
       <% if (message) { %>
       <p class="message"><%= message %></p>
@@ -30,10 +30,20 @@
 
       <section class="card form-grid">
         <h2>Token Discord du bot</h2>
+        <p>Apres avoir enregistre le token, utilise Lancer bot pour le mettre vraiment en ligne.</p>
         <form method="post" action="/bots/<%= bot.id %>/token" class="form-grid">
           <input name="discord_token" type="password" placeholder="Colle le token du bot" required />
           <button type="submit">Enregistrer le token</button>
         </form>
+        <div class="actions">
+          <form method="post" action="/bots/<%= bot.id %>/start">
+            <button type="submit">Lancer bot</button>
+          </form>
+          <form method="post" action="/bots/<%= bot.id %>/stop">
+            <button type="submit">Stop bot</button>
+          </form>
+        </div>
+        <p class="small-note">Active Message Content Intent dans Discord Developer Portal pour que les commandes texte marchent.</p>
       </section>
 
       <section class="card form-grid">

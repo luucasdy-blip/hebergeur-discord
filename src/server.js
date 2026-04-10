@@ -15,10 +15,13 @@ const {
   getUserByApiToken,
   resetUserPasswordByEmail,
   getBotForUser,
+  getBotsWithToken,
   setBotTokenForUser,
+  setBotOnlineForUser,
   addBotCommandForUser,
   addBotFileForUser,
 } = require("./db");
+const { startBot, stopBot } = require("./bot-runner");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -237,6 +240,27 @@ app.post("/bots/:id/token", requireAuth, async (req, res) => {
   return res.redirect(`/bots/${req.params.id}/manage`);
 });
 
+app.post("/bots/:id/start", requireAuth, async (req, res) => {
+  const onlineResult = await setBotOnlineForUser(res.locals.currentUser, req.params.id, true);
+  if (!onlineResult.ok) {
+    req.session.message =
+      onlineResult.reason === "missing_token" ? "Ajoute un token avant de lancer le bot." : "Impossible de lancer ce bot.";
+    return res.redirect(`/bots/${req.params.id}/manage`);
+  }
+
+  const runResult = await startBot(onlineResult.bot);
+  req.session.message = runResult.ok
+    ? "Bot lance avec succes."
+    : `Echec de lancement: ${runResult.message || runResult.reason}`;
+  return res.redirect(`/bots/${req.params.id}/manage`);
+});
+
+app.post("/bots/:id/stop", requireAuth, async (req, res) => {
+  await stopBot(req.params.id);
+  req.session.message = "Bot arrete.";
+  return res.redirect(`/bots/${req.params.id}/manage`);
+});
+
 app.post("/bots/:id/commands/create", requireAuth, async (req, res) => {
   const name = (req.body.name || "").trim();
   const response = (req.body.response || "").trim();
@@ -324,6 +348,17 @@ app.post("/admin/users/reset-password", requireAuth, requireAdmin, async (req, r
 
 initDb()
   .then(() => {
+    getBotsWithToken()
+      .then(async (bots) => {
+        for (const bot of bots) {
+          if (bot.status === "online" || bot.status === "starting") {
+            await startBot(bot);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error("Impossible de relancer les bots:", error.message);
+      });
     app.listen(port, () => {
       console.log(`Serveur lance: http://localhost:${port}`);
     });

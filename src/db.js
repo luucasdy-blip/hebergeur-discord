@@ -200,6 +200,10 @@ async function getBotById(botId) {
   return state.bots.find((b) => b.id === Number(botId)) || null;
 }
 
+async function getBotsWithToken() {
+  return state.bots.filter((b) => Boolean(b.discord_token));
+}
+
 function canManageBot(user, bot) {
   if (!user || !bot) return false;
   return user.role === "admin" || bot.owner_user_id === user.id;
@@ -221,8 +225,8 @@ async function setBotTokenForUser(user, botId, token) {
   const bot = await getBotById(botId);
   if (!bot || !canManageBot(user, bot)) return { ok: false };
   bot.discord_token = String(token || "").trim();
-  bot.is_online = Boolean(bot.discord_token);
-  bot.status = bot.is_online ? "online" : "offline";
+  bot.is_online = false;
+  bot.status = "configured";
   saveDb(state);
   return { ok: true, bot };
 }
@@ -255,6 +259,25 @@ async function addBotFileForUser(user, botId, fileInfo) {
   });
   saveDb(state);
   return { ok: true };
+}
+
+async function setBotRuntimeStatus(botId, status) {
+  const bot = await getBotById(botId);
+  if (!bot) return { ok: false };
+  bot.status = status;
+  bot.is_online = status === "online";
+  saveDb(state);
+  return { ok: true };
+}
+
+async function setBotOnlineForUser(user, botId, online) {
+  const bot = await getBotById(botId);
+  if (!bot || !canManageBot(user, bot)) return { ok: false, reason: "forbidden" };
+  if (!bot.discord_token) return { ok: false, reason: "missing_token" };
+  bot.status = online ? "starting" : "offline";
+  bot.is_online = false;
+  saveDb(state);
+  return { ok: true, bot };
 }
 
 async function resetUserPasswordByEmail(email, newPasswordHash) {
@@ -331,8 +354,12 @@ module.exports = {
   listApiTokensForUser,
   getUserByApiToken,
   resetUserPasswordByEmail,
+  getBotById,
   getBotForUser,
+  getBotsWithToken,
   setBotTokenForUser,
+  setBotOnlineForUser,
+  setBotRuntimeStatus,
   addBotCommandForUser,
   addBotFileForUser,
 };

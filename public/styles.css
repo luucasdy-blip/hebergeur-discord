@@ -176,3 +176,9 @@ td {
   padding: 10px;
   border-radius: 8px;
 }
+
+.small-note {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 8px 0 0 0;
+}
