@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Panel bot - <%= bot.name %></title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <strong><%= currentUser.email %></strong>
+        <span class="badge"><%= currentUser.role %></span>
+      </div>
+      <div class="actions">
+        <a href="/dashboard">Dashboard</a>
+        <form method="post" action="/logout">
+          <button type="submit">Se deconnecter</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Panel: <%= bot.name %></h1>
+      <p>Etat: <strong><%= bot.is_online ? "En ligne" : "Hors ligne" %></strong></p>
+
+      <% if (message) { %>
+      <p class="message"><%= message %></p>
+      <% } %>
+
+      <section class="card form-grid">
+        <h2>Token Discord du bot</h2>
+        <form method="post" action="/bots/<%= bot.id %>/token" class="form-grid">
+          <input name="discord_token" type="password" placeholder="Colle le token du bot" required />
+          <button type="submit">Enregistrer le token</button>
+        </form>
+      </section>
+
+      <section class="card form-grid">
+        <h2>Creer une commande</h2>
+        <form method="post" action="/bots/<%= bot.id %>/commands/create" class="form-grid">
+          <input name="name" type="text" placeholder="Nom commande (ex: !ping)" required />
+          <input name="response" type="text" placeholder="Reponse commande" required />
+          <button type="submit">Ajouter commande</button>
+        </form>
+      </section>
+
+      <section class="card form-grid">
+        <h2>Uploader un fichier</h2>
+        <form method="post" action="/bots/<%= bot.id %>/upload" enctype="multipart/form-data" class="form-grid">
+          <input name="bot_file" type="file" required />
+          <button type="submit">Uploader</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Commandes enregistrees</h2>
+        <% if (!bot.commands || !bot.commands.length) { %>
+        <p>Aucune commande.</p>
+        <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Commande</th>
+              <th>Reponse</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bot.commands.forEach((cmd) => { %>
+            <tr>
+              <td><%= cmd.name %></td>
+              <td><%= cmd.response %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </section>
+
+      <section class="card">
+        <h2>Fichiers uploades</h2>
+        <% if (!bot.files || !bot.files.length) { %>
+        <p>Aucun fichier.</p>
+        <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Taille (octets)</th>
+              <th>Lien</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bot.files.forEach((f) => { %>
+            <tr>
+              <td><%= f.original_name %></td>
+              <td><%= f.size %></td>
+              <td><a href="/uploads/<%= f.stored_name %>" target="_blank">Ouvrir</a></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </section>
+    </main>
+  </body>
+</html>

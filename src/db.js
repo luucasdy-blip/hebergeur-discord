@@ -70,6 +70,10 @@ async function run(sql, params = []) {
       name,
       owner_user_id: ownerUserId,
       status: "active",
+      discord_token: null,
+      is_online: false,
+      commands: [],
+      files: [],
       created_at: nowIso(),
     };
     state.bots.push(bot);
@@ -192,6 +196,67 @@ async function getUserByApiToken(rawToken) {
   return { id: user.id, email: user.email, role: user.role, tokenId: tokenRecord.id };
 }
 
+async function getBotById(botId) {
+  return state.bots.find((b) => b.id === Number(botId)) || null;
+}
+
+function canManageBot(user, bot) {
+  if (!user || !bot) return false;
+  return user.role === "admin" || bot.owner_user_id === user.id;
+}
+
+async function getBotForUser(user, botId) {
+  const bot = await getBotById(botId);
+  if (!bot) return null;
+  if (!canManageBot(user, bot)) return null;
+  const owner = state.users.find((u) => u.id === bot.owner_user_id);
+  return {
+    ...bot,
+    owner_email: owner ? owner.email : "inconnu",
+    token_set: Boolean(bot.discord_token),
+  };
+}
+
+async function setBotTokenForUser(user, botId, token) {
+  const bot = await getBotById(botId);
+  if (!bot || !canManageBot(user, bot)) return { ok: false };
+  bot.discord_token = String(token || "").trim();
+  bot.is_online = Boolean(bot.discord_token);
+  bot.status = bot.is_online ? "online" : "offline";
+  saveDb(state);
+  return { ok: true, bot };
+}
+
+async function addBotCommandForUser(user, botId, name, response) {
+  const bot = await getBotById(botId);
+  if (!bot || !canManageBot(user, bot)) return { ok: false };
+  const command = {
+    id: `${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+    name: String(name || "").trim(),
+    response: String(response || "").trim(),
+    created_at: nowIso(),
+  };
+  bot.commands = bot.commands || [];
+  bot.commands.push(command);
+  saveDb(state);
+  return { ok: true, command };
+}
+
+async function addBotFileForUser(user, botId, fileInfo) {
+  const bot = await getBotById(botId);
+  if (!bot || !canManageBot(user, bot)) return { ok: false };
+  bot.files = bot.files || [];
+  bot.files.push({
+    id: `${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+    original_name: fileInfo.originalName,
+    stored_name: fileInfo.storedName,
+    size: fileInfo.size,
+    created_at: nowIso(),
+  });
+  saveDb(state);
+  return { ok: true };
+}
+
 async function resetUserPasswordByEmail(email, newPasswordHash) {
   const normalized = (email || "").trim().toLowerCase();
   const user = state.users.find((u) => u.email === normalized);
@@ -266,4 +331,8 @@ module.exports = {
   listApiTokensForUser,
   getUserByApiToken,
   resetUserPasswordByEmail,
+  getBotForUser,
+  setBotTokenForUser,
+  addBotCommandForUser,
+  addBotFileForUser,
 };

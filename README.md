@@ -29,6 +29,7 @@ npm start
 - `SESSION_SECRET`
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
+- `ADMIN_FORCE_RESET` (mettre `true` une fois pour reinitialiser le mot de passe admin)
 
 ## Deploy en ligne
 

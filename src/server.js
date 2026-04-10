@@ -1,8 +1,10 @@
 require("dotenv").config();
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
+const multer = require("multer");
 const {
   initDb,
   get,
@@ -12,6 +14,10 @@ const {
   listApiTokensForUser,
   getUserByApiToken,
   resetUserPasswordByEmail,
+  getBotForUser,
+  setBotTokenForUser,
+  addBotCommandForUser,
+  addBotFileForUser,
 } = require("./db");
 
 const app = express();
@@ -22,6 +28,10 @@ app.set("views", path.join(__dirname, "..", "views"));
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "..", "public")));
+
+const uploadsDir = path.join(__dirname, "..", "public", "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const upload = multer({ dest: uploadsDir });
 
 app.use(
   session({
@@ -205,6 +215,52 @@ app.post("/bots/create", requireAuth, async (req, res) => {
   ]);
   req.session.message = "Bot ajoute.";
   return res.redirect("/dashboard");
+});
+
+app.get("/bots/:id/manage", requireAuth, async (req, res) => {
+  const bot = await getBotForUser(res.locals.currentUser, req.params.id);
+  if (!bot) {
+    req.session.message = "Bot introuvable ou acces refuse.";
+    return res.redirect("/dashboard");
+  }
+  return res.render("manage-bot", { bot });
+});
+
+app.post("/bots/:id/token", requireAuth, async (req, res) => {
+  const token = (req.body.discord_token || "").trim();
+  if (!token) {
+    req.session.message = "Token bot obligatoire.";
+    return res.redirect(`/bots/${req.params.id}/manage`);
+  }
+  const result = await setBotTokenForUser(res.locals.currentUser, req.params.id, token);
+  req.session.message = result.ok ? "Token enregistre, bot marque en ligne." : "Impossible de mettre a jour le token.";
+  return res.redirect(`/bots/${req.params.id}/manage`);
+});
+
+app.post("/bots/:id/commands/create", requireAuth, async (req, res) => {
+  const name = (req.body.name || "").trim();
+  const response = (req.body.response || "").trim();
+  if (!name || !response) {
+    req.session.message = "Nom de commande et reponse obligatoires.";
+    return res.redirect(`/bots/${req.params.id}/manage`);
+  }
+  const result = await addBotCommandForUser(res.locals.currentUser, req.params.id, name, response);
+  req.session.message = result.ok ? "Commande ajoutee." : "Impossible d'ajouter la commande.";
+  return res.redirect(`/bots/${req.params.id}/manage`);
+});
+
+app.post("/bots/:id/upload", requireAuth, upload.single("bot_file"), async (req, res) => {
+  if (!req.file) {
+    req.session.message = "Aucun fichier recu.";
+    return res.redirect(`/bots/${req.params.id}/manage`);
+  }
+  const result = await addBotFileForUser(res.locals.currentUser, req.params.id, {
+    originalName: req.file.originalname,
+    storedName: req.file.filename,
+    size: req.file.size,
+  });
+  req.session.message = result.ok ? "Fichier upload avec succes." : "Impossible d'uploader ce fichier.";
+  return res.redirect(`/bots/${req.params.id}/manage`);
 });
 
 app.get("/admin/users", requireAuth, requireAdmin, async (req, res) => {
