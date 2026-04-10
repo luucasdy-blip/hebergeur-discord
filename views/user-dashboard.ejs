@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Espace utilisateur - BotHost</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <strong><%= currentUser.email %></strong>
+        <span class="badge">user</span>
+      </div>
+      <div class="actions">
+        <form method="post" action="/logout">
+          <button type="submit">Se deconnecter</button>
+        </form>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>Espace utilisateur</h1>
+      <p>Tu vois uniquement tes bots.</p>
+
+      <% if (message) { %>
+      <p class="message"><%= message %></p>
+      <% } %>
+
+      <form method="post" action="/bots/create" class="card inline-form">
+        <input name="name" type="text" placeholder="Nom du bot" required />
+        <button type="submit">Ajouter</button>
+      </form>
+
+      <section class="card">
+        <% if (!bots.length) { %>
+        <p>Aucun bot pour le moment.</p>
+        <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Statut</th>
+              <th>Panel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% bots.forEach((bot) => { %>
+            <tr>
+              <td><%= bot.name %></td>
+              <td><%= bot.status %></td>
+              <td><a href="/bots/<%= bot.id %>/manage">Gerer</a></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </section>
+
+      <section class="card">
+        <h2>Tokens API</h2>
+        <% if (newApiToken) { %>
+        <p class="message">
+          Nouveau token (copie-le maintenant):<br />
+          <code><%= newApiToken %></code>
+        </p>
+        <% } %>
+        <form method="post" action="/tokens/create" class="card form-grid">
+          <input name="label" type="text" placeholder="Nom du token (ex: bot panel)" />
+          <select name="duration_hours">
+            <option value="1">1 heure</option>
+            <option value="24" selected>24 heures</option>
+            <option value="168">7 jours</option>
+            <option value="720">30 jours</option>
+          </select>
+          <button type="submit">Generer un token</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

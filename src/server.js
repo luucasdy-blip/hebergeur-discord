@@ -75,6 +75,7 @@ app.use(
 
 app.use(async (req, res, next) => {
   res.locals.currentUser = null;
+  res.locals.homePath = "/user";
   res.locals.message = req.session.message || null;
   res.locals.newApiToken = req.session.newApiToken || null;
   delete req.session.message;
@@ -82,7 +83,10 @@ app.use(async (req, res, next) => {
 
   if (!req.session.userId) return next();
   const user = await get("SELECT id, email, role FROM users WHERE id = ?", [req.session.userId]);
-  if (user) res.locals.currentUser = user;
+  if (user) {
+    res.locals.currentUser = user;
+    res.locals.homePath = user.role === "admin" ? "/admin" : "/user";
+  }
   return next();
 });
 
@@ -174,19 +178,28 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/dashboard", requireAuth, async (req, res) => {
+  return res.redirect(res.locals.currentUser.role === "admin" ? "/admin" : "/user");
+});
+
+app.get("/user", requireAuth, async (req, res) => {
   const user = res.locals.currentUser;
-  const bots =
-    user.role === "admin"
-      ? await all(
-          "SELECT bots.id, bots.name, bots.status, users.email AS owner_email FROM bots JOIN users ON users.id = bots.owner_user_id ORDER BY bots.created_at DESC"
-        )
-      : await all(
-          "SELECT bots.id, bots.name, bots.status, users.email AS owner_email FROM bots JOIN users ON users.id = bots.owner_user_id WHERE bots.owner_user_id = ? ORDER BY bots.created_at DESC",
-          [user.id]
-        );
+  const bots = await all(
+    "SELECT bots.id, bots.name, bots.status, users.email AS owner_email FROM bots JOIN users ON users.id = bots.owner_user_id WHERE bots.owner_user_id = ? ORDER BY bots.created_at DESC",
+    [user.id]
+  );
 
   const tokens = await listApiTokensForUser(user.id);
-  return res.render("dashboard", { bots, tokens });
+  return res.render("user-dashboard", { bots, tokens });
+});
+
+app.get("/admin", requireAuth, requireAdmin, async (req, res) => {
+  const user = res.locals.currentUser;
+  const bots = await all(
+    "SELECT bots.id, bots.name, bots.status, users.email AS owner_email FROM bots JOIN users ON users.id = bots.owner_user_id ORDER BY bots.created_at DESC"
+  );
+
+  const tokens = await listApiTokensForUser(user.id);
+  return res.render("admin-dashboard", { bots, tokens });
 });
 
 app.post("/tokens/create", requireAuth, async (req, res) => {
