@@ -3,7 +3,15 @@ const path = require("path");
 const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
-const { initDb, get, run, all } = require("./db");
+const {
+  initDb,
+  get,
+  run,
+  all,
+  createApiTokenForUser,
+  listApiTokensForUser,
+  getUserByApiToken,
+} = require("./db");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,7 +38,9 @@ app.use(
 app.use(async (req, res, next) => {
   res.locals.currentUser = null;
   res.locals.message = req.session.message || null;
+  res.locals.newApiToken = req.session.newApiToken || null;
   delete req.session.message;
+  delete req.session.newApiToken;
 
   if (!req.session.userId) return next();
   const user = await get("SELECT id, email, role FROM users WHERE id = ?", [req.session.userId]);
@@ -136,7 +146,49 @@ app.get("/dashboard", requireAuth, async (req, res) => {
           [user.id]
         );
 
-  return res.render("dashboard", { bots });
+  const tokens = await listApiTokensForUser(user.id);
+  return res.render("dashboard", { bots, tokens });
+});
+
+app.post("/tokens/create", requireAuth, async (req, res) => {
+  const user = res.locals.currentUser;
+  const label = (req.body.label || "").trim() || "token";
+  const duration = Number(req.body.duration_hours || 24);
+  const durationHours = Number.isFinite(duration) && duration > 0 ? duration : 24;
+
+  try {
+    const { plainToken } = await createApiTokenForUser(user, durationHours, label);
+    req.session.newApiToken = plainToken;
+    req.session.message =
+      user.role === "admin"
+        ? "Token admin cree (sans expiration). Copie-le maintenant."
+        : "Token cree avec expiration. Copie-le maintenant.";
+  } catch (error) {
+    req.session.message = "Erreur pendant la creation du token.";
+  }
+
+  return res.redirect("/dashboard");
+});
+
+app.get("/api/me", async (req, res) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Missing Bearer token" });
+  }
+
+  const user = await getUserByApiToken(token);
+  if (!user) {
+    return res.status(401).json({ error: "Invalid or expired token" });
+  }
+
+  return res.json({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    auth: "token",
+  });
 });
 
 app.post("/bots/create", requireAuth, async (req, res) => {

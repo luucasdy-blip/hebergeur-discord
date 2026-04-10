@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 
 const dataDir = path.join(__dirname, "..", "data");
@@ -18,11 +19,16 @@ function loadDb() {
     return {
       users: [],
       bots: [],
-      counters: { users: 0, bots: 0 },
+      api_tokens: [],
+      counters: { users: 0, bots: 0, api_tokens: 0 },
     };
   }
   const raw = fs.readFileSync(dbPath, "utf8");
-  return JSON.parse(raw);
+  const parsed = JSON.parse(raw);
+  if (!parsed.api_tokens) parsed.api_tokens = [];
+  if (!parsed.counters) parsed.counters = { users: 0, bots: 0, api_tokens: 0 };
+  if (typeof parsed.counters.api_tokens !== "number") parsed.counters.api_tokens = 0;
+  return parsed;
 }
 
 function saveDb(state) {
@@ -127,6 +133,65 @@ async function all(sql, params = []) {
   throw new Error(`Unsupported all() query: ${sql}`);
 }
 
+function hashToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function buildTokenPreview(token) {
+  return `${token.slice(0, 12)}...`;
+}
+
+async function createApiTokenForUser(user, durationHours, label = "") {
+  const rawToken = `bth_${crypto.randomBytes(24).toString("hex")}`;
+  const tokenHash = hashToken(rawToken);
+  const now = new Date();
+  const isAdmin = user.role === "admin";
+  const expiresAt = isAdmin ? null : new Date(now.getTime() + durationHours * 60 * 60 * 1000).toISOString();
+
+  state.counters.api_tokens += 1;
+  const tokenRecord = {
+    id: state.counters.api_tokens,
+    user_id: user.id,
+    token_hash: tokenHash,
+    token_preview: buildTokenPreview(rawToken),
+    label: label || "token",
+    is_infinite: isAdmin,
+    expires_at: expiresAt,
+    created_at: now.toISOString(),
+  };
+
+  state.api_tokens.push(tokenRecord);
+  saveDb(state);
+
+  return {
+    plainToken: rawToken,
+    record: tokenRecord,
+  };
+}
+
+async function listApiTokensForUser(userId) {
+  return state.api_tokens
+    .filter((t) => t.user_id === userId)
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+}
+
+function isTokenExpired(tokenRecord) {
+  if (tokenRecord.is_infinite) return false;
+  if (!tokenRecord.expires_at) return true;
+  return new Date(tokenRecord.expires_at).getTime() <= Date.now();
+}
+
+async function getUserByApiToken(rawToken) {
+  const tokenHash = hashToken(rawToken);
+  const tokenRecord = state.api_tokens.find((t) => t.token_hash === tokenHash);
+  if (!tokenRecord) return null;
+  if (isTokenExpired(tokenRecord)) return null;
+
+  const user = state.users.find((u) => u.id === tokenRecord.user_id);
+  if (!user) return null;
+  return { id: user.id, email: user.email, role: user.role, tokenId: tokenRecord.id };
+}
+
 async function initDb() {
   await run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -168,4 +233,7 @@ module.exports = {
   get,
   all,
   initDb,
+  createApiTokenForUser,
+  listApiTokensForUser,
+  getUserByApiToken,
 };

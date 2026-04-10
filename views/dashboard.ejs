@@ -59,6 +59,57 @@
         </table>
         <% } %>
       </section>
+
+      <section class="card">
+        <h2>Tokens API</h2>
+        <p>
+          Cree un token comme les plateformes IA. <% if (currentUser.role === 'admin') { %>Ton token admin est
+          illimite.<% } else { %>Ton token utilisateur expire apres la duree choisie.<% } %>
+        </p>
+
+        <% if (newApiToken) { %>
+        <p class="message">
+          Nouveau token (copie-le maintenant, il ne sera plus affiche):<br />
+          <code><%= newApiToken %></code>
+        </p>
+        <% } %>
+
+        <form method="post" action="/tokens/create" class="card form-grid">
+          <input name="label" type="text" placeholder="Nom du token (ex: bot panel)" />
+          <% if (currentUser.role !== 'admin') { %>
+          <select name="duration_hours">
+            <option value="1">1 heure</option>
+            <option value="24" selected>24 heures</option>
+            <option value="168">7 jours</option>
+            <option value="720">30 jours</option>
+          </select>
+          <% } %>
+          <button type="submit">Generer un token</button>
+        </form>
+
+        <% if (!tokens.length) { %>
+        <p>Aucun token cree pour le moment.</p>
+        <% } else { %>
+        <table>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Token</th>
+              <th>Expiration</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% tokens.forEach((token) => { %>
+            <tr>
+              <td><%= token.label %></td>
+              <td><%= token.token_preview %></td>
+              <td><%= token.is_infinite ? 'Infini (admin)' : token.expires_at %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+        <% } %>
+      </section>
     </main>
   </body>
 </html>
