@@ -153,9 +153,10 @@ app.post("/register", async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 10);
-    const result = await run("INSERT INTO users(email, password_hash, role) VALUES (?, ?, 'user')", [
+    const result = await run("INSERT INTO users(email, password_hash, role) VALUES (?, ?, ?)", [
       normalizedEmail,
       hash,
+      "user",
     ]);
     req.session.userId = result.lastID;
     req.session.message = "Compte cree avec succes.";

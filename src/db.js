@@ -45,7 +45,7 @@ async function run(sql, params = []) {
 
   if (q.startsWith("INSERT INTO users")) {
     const [email, passwordHash, roleFromParams] = params;
-    const role = roleFromParams || "admin";
+    const role = roleFromParams === "admin" ? "admin" : "user";
     const exists = state.users.some((u) => u.email === email);
     if (exists) throw new Error("UNIQUE constraint failed: users.email");
 
