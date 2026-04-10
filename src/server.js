@@ -2,7 +2,6 @@ require("dotenv").config();
 const path = require("path");
 const express = require("express");
 const session = require("express-session");
-const SQLiteStore = require("connect-sqlite3")(session);
 const bcrypt = require("bcryptjs");
 const { initDb, get, run, all } = require("./db");
 
@@ -17,7 +16,6 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 
 app.use(
   session({
-    store: new SQLiteStore({ db: "sessions.db", dir: path.join(__dirname, "..", "data") }),
     secret: process.env.SESSION_SECRET || "dev_secret_change_me",
     resave: false,
     saveUninitialized: false,
