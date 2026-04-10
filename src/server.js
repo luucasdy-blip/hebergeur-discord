@@ -11,6 +11,7 @@ const {
   createApiTokenForUser,
   listApiTokensForUser,
   getUserByApiToken,
+  resetUserPasswordByEmail,
 } = require("./db");
 
 const app = express();
@@ -233,6 +234,36 @@ app.post("/admin/users/create", requireAuth, requireAdmin, async (req, res) => {
     req.session.message = "Impossible de creer l'utilisateur (email deja utilise ?).";
   }
   return res.redirect("/admin/users");
+});
+
+app.post("/admin/users/reset-password", requireAuth, requireAdmin, async (req, res) => {
+  const email = (req.body.email || "").trim().toLowerCase();
+  const newPassword = req.body.new_password || "";
+
+  if (!email || !newPassword) {
+    req.session.message = "Email et nouveau mot de passe obligatoires.";
+    return res.redirect("/admin/users");
+  }
+
+  if (newPassword.length < 8) {
+    req.session.message = "Le nouveau mot de passe doit faire au moins 8 caracteres.";
+    return res.redirect("/admin/users");
+  }
+
+  try {
+    const hash = await bcrypt.hash(newPassword, 10);
+    const result = await resetUserPasswordByEmail(email, hash);
+    if (!result.ok) {
+      req.session.message = "Utilisateur introuvable pour cet email.";
+      return res.redirect("/admin/users");
+    }
+
+    req.session.message = "Mot de passe utilisateur reinitialise.";
+    return res.redirect("/admin/users");
+  } catch (error) {
+    req.session.message = "Erreur pendant la reinitialisation du mot de passe.";
+    return res.redirect("/admin/users");
+  }
 });
 
 initDb()

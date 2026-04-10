@@ -38,6 +38,19 @@
         <button type="submit">Creer</button>
       </form>
 
+      <form method="post" action="/admin/users/reset-password" class="card form-grid">
+        <h2>Reinitialiser un mot de passe</h2>
+        <input name="email" type="email" placeholder="Email du compte" required />
+        <input
+          name="new_password"
+          type="password"
+          placeholder="Nouveau mot de passe (8 caracteres min)"
+          minlength="8"
+          required
+        />
+        <button type="submit">Reinitialiser</button>
+      </form>
+
       <section class="card">
         <h2>Liste des comptes</h2>
         <table>

@@ -192,6 +192,18 @@ async function getUserByApiToken(rawToken) {
   return { id: user.id, email: user.email, role: user.role, tokenId: tokenRecord.id };
 }
 
+async function resetUserPasswordByEmail(email, newPasswordHash) {
+  const normalized = (email || "").trim().toLowerCase();
+  const user = state.users.find((u) => u.email === normalized);
+  if (!user) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  user.password_hash = newPasswordHash;
+  saveDb(state);
+  return { ok: true, userId: user.id };
+}
+
 async function initDb() {
   await run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -216,6 +228,7 @@ async function initDb() {
 
   const adminEmail = process.env.ADMIN_EMAIL || "admin@local.dev";
   const adminPassword = process.env.ADMIN_PASSWORD || "ChangeMe123!";
+  const forceReset = String(process.env.ADMIN_FORCE_RESET || "false").toLowerCase() === "true";
   const existingAdmin = await get("SELECT id FROM users WHERE email = ?", [adminEmail]);
 
   if (!existingAdmin) {
@@ -225,6 +238,22 @@ async function initDb() {
       [adminEmail, passwordHash]
     );
     console.log(`Admin cree: ${adminEmail} (pense a changer le mot de passe)`);
+    return;
+  }
+
+  const existingAdminUser = state.users.find((u) => u.email === adminEmail);
+  if (!existingAdminUser) return;
+
+  if (existingAdminUser.role !== "admin") {
+    existingAdminUser.role = "admin";
+  }
+
+  if (forceReset) {
+    existingAdminUser.password_hash = await bcrypt.hash(adminPassword, 10);
+    saveDb(state);
+    console.log(`Mot de passe admin reinitialise pour: ${adminEmail}`);
+  } else {
+    saveDb(state);
   }
 }
 
@@ -236,4 +265,5 @@ module.exports = {
   createApiTokenForUser,
   listApiTokensForUser,
   getUserByApiToken,
+  resetUserPasswordByEmail,
 };
